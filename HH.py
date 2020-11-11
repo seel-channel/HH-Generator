@@ -49,30 +49,7 @@ class HH:
             else: 
                 files_path = files_hpath if files_hpath else files_lpath
             
-            timesLoading = []
-            if self.files_len > 1:
-                data = []
-                for i in range(self.plots_amount):
-                    timeMethod = time.time()
-                    data.append(self.loadFileData(files_path[i]))
-                    timesLoading.append(self.timeDiff(timeMethod))
-            else:
-                timeMethod = time.time()
-                data = self.loadFileData(files_path[0])
-                dataConverted = []
-                x, y, z = [], [], []
-                for i in range(len(data)):
-                    x.append(data[i][0])
-                    y.append(data[i][1])
-                    z.append(data[i][2])
-                dataConverted.append(x)
-                dataConverted.append(y)
-                dataConverted.append(z)
-                data = dataConverted
-                for i in range(self.plots_amount):
-                    timesLoading.append("({:0.2f}s)".format((time.time() - timeMethod) / self.plots_amount))
-                    
-            computedChannelsData = self.computeChannel(data, sensor, timesLoading)
+            computedChannelsData = self.computeChannel(files_path, sensor)
                 
             self.all_data.append(computedChannelsData[0])
             self.all_baseline.append(computedChannelsData[1])
@@ -97,6 +74,93 @@ class HH:
         self.updatePercentage(6, f"DONE")
         self.updatePercentage(0, "")
         print("\n" + 14*"--" + "\n")
+    
+    
+    #LOADING DATA FUNCTIONS
+    def loadFileData(self, filepath):
+        filename = filepath.split("/")[-1]
+        extension = filename.split(".")[-1].lower()
+        if extension == "mseed" or extension == "sac":
+            data = obs.read(filepath)[0].data
+        else: data = np.loadtxt(filepath)
+        return data
+    
+    def computeChannel(self, files_path, sensor):
+        #Convert the data from data merge
+        #FROM: [[x y z], [x y z], [x, y z], ..., [x y z]]
+        #TO:   [[x, x, x, ..., x], [y, y, y, ..., y], [z, z, z, ..., z]]
+        data = []
+        loadingTimes = []
+        if self.files_len == 1:
+            timeMethod = time.time()
+            fileData = self.loadFileData(files_path[0])
+            x, y, z = [], [], []
+            for i in range(len(data)):
+                x.append(fileData[i][0])
+                y.append(fileData[i][1])
+                z.append(fileData[i][2])
+            data.append(x)
+            data.append(y)
+            data.append(z)
+            for i in range(self.plots_amount):
+                loadingTimes.append("({:0.2f}s)".format(
+                    (time.time() - timeMethod) / self.plots_amount))
+        
+        length = self.plots_amount
+        data_sensor = []
+        welch_sensor = []
+        baseline_sensor = []
+        for i in range(length):
+            sensorTimeInit = time.time()
+            completed = "{}/{}".format(i + 1, length)
+            sensor_letter = self.getSensorLetter(sensor)
+            progress = 6 if self.files_hpath and self.files_lpath else 12
+            print("SENSOR{} - CHANNEL {}".format(sensor_letter, completed))
+            
+            #LOADING DATA
+            print(" - LOADING DATA")
+            self.updatePercentage(progress, f"LOADING{sensor_letter} DATA ({completed})")
+            self.updatePercentage(0, "")
+            timeMethod = time.time()
+            if self.files_len > 1:
+                dataVector = self.loadFileData(files_path[i])
+                print("   {} DONE".format(self.timeDiff(timeMethod)))
+            else:
+                dataVector = data[i]
+                print("   {} DONE".format(loadingTimes[i]))
+            data_sensor.append(dataVector)
+            
+            #DATA TRIM
+            end = self.end_whole[sensor]
+            start = self.start_whole[sensor]
+            totalWhole = start + end
+            lenghtVector = len(dataVector)
+            start = 1 if start < 1 else start
+            end = 1 if end < 1 else end
+            if totalWhole >= lenghtVector:
+                print("   COULDNT TRIM DATA BEACAUSE (start_whole + end_whole) >= len(dataVector) ({} > {})".format(totalWhole, lenghtVector))
+                data_trim = dataVector
+            else: data_trim = dataVector[start:-end]
+                
+            #CORRECTION DATA
+            print(" - BASELINE CORRECTION")
+            self.updatePercentage(progress,  f"CORRECTING{sensor_letter} DATA ({completed})")
+            self.updatePercentage(0, "")
+            timeMethod = time.time()
+            baseline_corr = self.baselineCorretion(data_trim)
+            baseline_sensor.append(baseline_corr)
+            print("   {} DONE".format(self.timeDiff(timeMethod)))
+            
+            #WELCH METHOD
+            print(" - WELCH METHOD")
+            timeMethod = time.time()
+            welch_sensor.append(self.welchMethod(baseline_corr[1]))
+            print("   {} DONE".format(self.timeDiff(timeMethod)))
+           
+            print("{} CHANNEL DATA LOADED \n".format(self.timeDiff(sensorTimeInit)))
+        
+        return data_sensor, baseline_sensor, welch_sensor
+    
     
     #UTILS FUNCTIONS
     def updatePercentage(self, toComplete, message):
@@ -137,8 +201,7 @@ class HH:
         if self.use_baseline_correction:
             y = BaselineRemoval(data).ZhangFit(data_len)
             y = y - np.mean(y)
-        else: 
-            y = data
+        else: y = data
         return  x,  y 
     
     def welchMethod(self, data):
@@ -167,61 +230,7 @@ class HH:
                 break
         return skip
     
-    #LOADING DATA
-    def loadFileData(self, filepath):
-        filename = filepath.split("/")[-1]
-        extension = filename.split(".")[-1].lower()
-        if extension == "mseed" or extension == "sac":
-            data = obs.read(filepath)[0].data
-        else: data = np.loadtxt(filepath)
-        return data
     
-    def computeChannel(self, data, sensor, loadingTimes):
-        length = self.plots_amount
-        data_sensor = []
-        welch_sensor = []
-        baseline_sensor = []
-        for i in range(length):
-            sensorTimeInit = time.time()
-            completed = "{}/{}".format(i + 1, length)
-            sensor_letter = self.getSensorLetter(sensor)
-            progress = 6 if self.files_hpath and self.files_lpath else 12
-            print("SENSOR{} - CHANNEL {}".format(sensor_letter, completed))
-            
-            print(" - LOADING DATA")
-            self.updatePercentage(progress, f"LOADING{sensor_letter} DATA ({completed})")
-            self.updatePercentage(0, "")
-            dataVector = data[i]
-            data_sensor.append(dataVector)
-            print("   {} DONE".format(loadingTimes[i]))
-            
-            end = self.end_whole[sensor]
-            start = self.start_whole[sensor]
-            totalWhole = start + end
-            lenghtVector = len(dataVector)
-            start = 1 if start < 1 else start
-            end = 1 if end < 1 else end
-            if totalWhole >= lenghtVector:
-                print("   COULDNT TRIM DATA BEACAUSE (start_whole + end_whole) >= len(dataVector) ({} > {})".format(totalWhole, lenghtVector))
-                data_trim = dataVector
-            else: data_trim = dataVector[start:-end]
-                
-            print(" - BASELINE CORRECTION")
-            self.updatePercentage(progress,  f"CORRECTING{sensor_letter} DATA ({completed})")
-            self.updatePercentage(0, "")
-            timeMethod = time.time()
-            baseline_corr = self.baselineCorretion(data_trim)
-            baseline_sensor.append(baseline_corr)
-            print("   {} DONE".format(self.timeDiff(timeMethod)))
-            
-            print(" - WELCH METHOD")
-            timeMethod = time.time()
-            welch_sensor.append(self.welchMethod(baseline_corr[1]))
-            print("   {} DONE".format(self.timeDiff(timeMethod)))
-           
-            print("{} CHANNEL DATA LOADED \n".format(self.timeDiff(sensorTimeInit)))
-        
-        return data_sensor, baseline_sensor, welch_sensor
     
     #SUBPLOT GENERATION FUNCTIONS
     def plotBaselineCorrection(self, ax, sensor, i):
