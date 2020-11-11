@@ -95,7 +95,7 @@ class HH:
             timeMethod = time.time()
             fileData = self.loadFileData(files_path[0])
             x, y, z = [], [], []
-            for i in range(len(data)):
+            for i in range(len(fileData)):
                 x.append(fileData[i][0])
                 y.append(fileData[i][1])
                 z.append(fileData[i][2])
@@ -105,7 +105,7 @@ class HH:
             for i in range(self.plots_amount):
                 loadingTimes.append("({:0.2f}s)".format(
                     (time.time() - timeMethod) / self.plots_amount))
-        
+
         length = self.plots_amount
         data_sensor = []
         welch_sensor = []
@@ -141,7 +141,7 @@ class HH:
                 print("   COULDNT TRIM DATA BEACAUSE (start_whole + end_whole) >= len(dataVector) ({} > {})".format(totalWhole, lenghtVector))
                 data_trim = dataVector
             else: data_trim = dataVector[start:-end]
-                
+            
             #CORRECTION DATA
             print(" - BASELINE CORRECTION")
             self.updatePercentage(progress,  f"CORRECTING{sensor_letter} DATA ({completed})")
