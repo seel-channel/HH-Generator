@@ -70,6 +70,7 @@ class ProgressBarScreen(tk.Toplevel):
             else:
                 clearMergedChannelsSelected(0)
                 clearMergedChannelsSelected(1)
+            generate_btn["state"] ="normal"
             self.destroy()
             
 class AdvancedSettingsScreen(tk.Toplevel):
@@ -358,6 +359,7 @@ def generateGraphs():
             folder = removeExtension(folder)
             
         pbs = ProgressBarScreen(window)
+        generate_btn["state"] ="disabled"
         hfiles = splittedData_filepath[0] if not usingMergedData else [mergedData_filepath[0]]
         lfiles = splittedData_filepath[1] if not usingMergedData else [mergedData_filepath[1]]
         HH(hfiles if isComplete[0] else None, 
