@@ -1,15 +1,15 @@
 from HH import HH
-import tkinter as tk
-import tkinter.ttk as tkk
+from tkinter import (Tk, Button, Frame, Label, Toplevel, IntVar, Entry, Checkbutton)
+from tkinter.ttk import Progressbar
 from tkinter.filedialog import askopenfilename
 
 #-----------------
 #WIDGETS CLASSES
 #-----------------
-class TransparentButton(tk.Button):
+class TransparentButton(Button):
     def __init__(self, master, **kw):
         bg = window_bg
-        tk.Button.__init__(self, 
+        Button.__init__(self, 
             padx = 0,
             pady = 0,
             master = master,
@@ -34,13 +34,13 @@ class TransparentButton(tk.Button):
         self['state'] = "enable"
         self['cursor'] = ""
         
-class ProgressBarScreen(tk.Toplevel):
+class ProgressBarScreen(Toplevel):
     def __init__(self, master):
         super().__init__(master = master) 
         self.title("Progress Screen") 
         self.geometry("300x150") 
         setWindowStyle(self)
-        self.labelFrame = tk.Frame(self)
+        self.labelFrame = Frame(self)
         self.labelFrame.configure(background=window_bg)
         self.minLabel = createLabel(self.labelFrame)
         self.maxLabel = createLabel(self.labelFrame)
@@ -50,7 +50,7 @@ class ProgressBarScreen(tk.Toplevel):
         self.maxLabel.grid(row = 0, column= 4, padx = 20)
         self.labelFrame.grid(row = 0, column = 1, pady = (40, 0))
         
-        self.progressBar = tkk.Progressbar(self)
+        self.progressBar = Progressbar(self)
         self.progressBar.grid(row = 1, column = 1, pady = 5)
         self.progressLabel = createLabel(self)
         setStyleText(self.progressLabel, "INITIALIZING...")
@@ -73,7 +73,7 @@ class ProgressBarScreen(tk.Toplevel):
             generate_btn["state"] ="normal"
             self.destroy()
             
-class AdvancedSettingsScreen(tk.Toplevel):
+class AdvancedSettingsScreen(Toplevel):
     def __init__(self, master):
         super().__init__(master = master) 
         self.inputs = []
@@ -93,19 +93,19 @@ class AdvancedSettingsScreen(tk.Toplevel):
         self.loadData()
         
         global usingMergedData, use_baseline_correction
-        self.checkMerge = tk.IntVar(value=usingMergedData)
-        self.checkBaseline = tk.IntVar(value=use_baseline_correction)
-        check1 = tk.Checkbutton(self, variable=self.checkMerge)#, command =self.changeCheckValue)
-        check2 = tk.Checkbutton(self, variable=self.checkBaseline)
+        self.checkMerge = IntVar(value=usingMergedData)
+        self.checkBaseline = IntVar(value=use_baseline_correction)
+        check1 = Checkbutton(self, variable=self.checkMerge)#, command =self.changeCheckValue)
+        check2 = Checkbutton(self, variable=self.checkBaseline)
         setStyleText(check1, " Use Merged Data")
         setStyleText(check2, " Use Baseline Corr.")
         check1.grid(row=8, column=0, padx=(20, 0), pady=(10, 0), sticky="nw")
         check2.grid(row=9, column=0, padx=(20, 0), sticky="nw")
         
-        frame = tk.Frame(self)
+        frame = Frame(self)
         frame.configure(background=window_bg)
-        submit = tk.Button(frame, command = self.submit)
-        cancel = tk.Button(frame, command = lambda: self.destroy())
+        submit = Button(frame, command = self.submit)
+        cancel = Button(frame, command = lambda: self.destroy())
         setStyleText(cancel, "Cancel")
         setStyleText(submit, "Submit")
         submit.grid(row=0, column=0, padx=(0, 5), sticky="nw")
@@ -155,12 +155,12 @@ class AdvancedSettingsScreen(tk.Toplevel):
             usingMergedData = False
 
     def textAndInput(self, text, row):
-        frame = tk.Frame(self)
+        frame = Frame(self)
         frame.configure(background=window_bg)
         label = createLabel(frame)
         setStyleText(label, text)
         vcmd = (self.register(self.validateInput))
-        inputText = tk.Entry(frame, 
+        inputText = Entry(frame, 
             validate='all', 
             validatecommand=(vcmd, '%P'))
         inputText.grid(row=1, column=0)
@@ -180,7 +180,7 @@ class AdvancedSettingsScreen(tk.Toplevel):
 #-----------------
 def clearChannelsButton(frame, i, command):
     red = "#db1414"
-    btn_clear = tk.Button(frame, 
+    btn_clear = Button(frame, 
         command = command,
         activeforeground = "white",
         activebackground = red, 
@@ -193,7 +193,7 @@ def clearChannelsButton(frame, i, command):
     return btn_clear
 
 def buildSplittedDataButtons(row):
-    fr_buttons = tk.Frame(window)
+    fr_buttons = Frame(window)
     fr_buttons.configure(background=window_bg)
     channel = ['N90E', 'N00E', 'VERTICAL']
     
@@ -206,7 +206,7 @@ def buildSplittedDataButtons(row):
         btns = []
         names = []
         sensors = []
-        btn_select = tk.Button(
+        btn_select = Button(
             fr_buttons, 
             command = lambda x=sensor:selectFilesSystem(x))
         setStyleText(btn_select, f"SELECT {'H' if sensor == 0 else 'L'} DATA")
@@ -230,7 +230,7 @@ def buildSplittedDataButtons(row):
     return fr_buttons
 
 def buildMergedDataButtons(row):
-    fr_buttons = tk.Frame(window)
+    fr_buttons = Frame(window)
     fr_buttons.configure(background=window_bg)
     
     label = createLabel(fr_buttons)
@@ -256,7 +256,7 @@ def buildMergedDataButtons(row):
 
 #STYLE WIDGETS
 def createLabel(frame):
-    return tk.Label(frame, background=window_bg)    
+    return Label(frame, background=window_bg)    
 
 def setStyleText(element, text, bold = False):
     element.configure(
@@ -390,7 +390,7 @@ if __name__ == '__main__':
         "start_whole": [25000, 25000],
         "end_whole": [50000, 100000]}
     
-    window = tk.Tk()
+    window = Tk()
     setWindowStyle(window)
     window.geometry("600x240")
     window.title("HH Graphs Generator")
@@ -403,7 +403,7 @@ if __name__ == '__main__':
     selectMergedData.grid_remove()
     selectSplittedData = buildSplittedDataButtons(row=1)
     
-    generate_btn = tk.Button(window, command = generateGraphs)
+    generate_btn = Button(window, command = generateGraphs)
     setStyleText(generate_btn, "GENERATE")
     generate_btn.grid(row = 2, column = 1, pady=(20, 10)) 
     advanced_settings_btn = TransparentButton(window, command = lambda: AdvancedSettingsScreen(window))
