@@ -64,10 +64,15 @@ if __name__ == '__main__':
     high = "./data/MSEED/20/"
     low = "./data/MSEED/0/"
     HH([high + "9CG.e.mseed", high + "9CG.n.mseed", high + "9CG.z.mseed"],
-        [low + "R1235.CG.e.mseed", low + "R1235.CG.n.mseed", low + "R1235.CG.z.mseed"])
+        [low + "R1235.CG.e.mseed", low + "R1235.CG.n.mseed", low + "R1235.CG.z.mseed"],
+        folder="9CG - R1235")
 
     #USING MERGED DATA
     path = "./data/ASCII merge/SNRA9510.091"
-    HH([path], None, start_whole=[1,1], end_whole=[1,1])
+    HH([path], None, 
+        start_whole=[1,1], 
+        end_whole=[1,1], 
+        folder="SNRA9510",
+        use_baseline_correction=False)
 
 ```
