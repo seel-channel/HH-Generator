@@ -68,8 +68,8 @@ if __name__ == '__main__':
         folder="9CG - R1235")
 
     #USING MERGED DATA
-    path = "./data/ASCII merge/SNRA9510.091"
-    HH( [path], None, 
+    file = "./data/ASCII merge/SNRA9510.091"
+    HH( [file], None, 
         start_whole=[1,1], 
         end_whole=[1,1], 
         folder="SNRA9510",
