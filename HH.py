@@ -40,6 +40,23 @@ class HH:
             para realizar el Welch Method, HHSR y el HVSR.
             Si es verdadero, realizará el baseline correction y el resultado de la
             correción será utiliza para realizar el Welch Method, HHSR y el HVSR.
+
+
+        EXAMPLE
+
+        if __name__ == '__main__':
+            #USING SPLITTED DATA
+            high = "./data/MSEED/20/"
+            low = "./data/MSEED/0/"
+            HH( [high+"9CG.e.mseed", high+"9CG.n.mseed", high+"9CG.z.mseed"],
+                [low+"R1235.CG.e.mseed", low+"R1235.CG.n.mseed", low+"R1235.CG.z.mseed"])
+
+            #USING MERGED DATA
+            file = "./data/ASCII merge/SNRA9510.091"
+            HH( [file], None, 
+                start_whole=[1,1], 
+                end_whole=[1,1], 
+                use_baseline_correction=False)
     """
 
     def __init__(self,
@@ -407,20 +424,17 @@ class HH:
 
 
 '''
-# TESTING SPLITTED DATA
 if __name__ == '__main__':
-    viewData = []
-    high = "/media/felipe/Estudio/Proyectos/Otros/HH Generator/data/MSEED/20/"
-    low = "/media/felipe/Estudio/Proyectos/Otros/HH Generator/data/MSEED/0/"
-    
-    HH([high + "9CG.e.mseed", high + "9CG.n.mseed", high + "9CG.z.mseed"], 
-           [low + "R1235.CG.e.mseed", low + "R1235.CG.n.mseed", low + "R1235.CG.z.mseed"])
+    #USING SPLITTED DATA
+    high = "./data/MSEED/20/"
+    low = "./data/MSEED/0/"
+    HH( [high+"9CG.e.mseed", high+"9CG.n.mseed", high+"9CG.z.mseed"],
+        [low+"R1235.CG.e.mseed", low+"R1235.CG.n.mseed", low+"R1235.CG.z.mseed"])
 
-
-# TESTING MERGED DATA
-if __name__ == '__main__':
-    viewData = []
-    path = "/media/felipe/Estudio/Proyectos/Otros/HH Generator/data/ASCII merge/SNRA9510.091"
-    HH([path], [path], start_whole=[1,1], end_whole=[1,1])
-    
+    #USING MERGED DATA
+    file = "./data/ASCII merge/SNRA9510.091"
+    HH( [file], None, 
+        start_whole=[1,1], 
+        end_whole=[1,1], 
+        use_baseline_correction=False)
 '''
