@@ -74,9 +74,9 @@ if __name__ == '__main__':
         use_baseline_correction=False)
 ```
 
-<br>
-View HH Generator images on [felipemurguia.com](https://felipemurguia.com)
-<br>
+<br><br>
+View HH Generator images on **https://felipemurguia.com**
+<br><br>
 
 ## Documentación (HH Class)
 
