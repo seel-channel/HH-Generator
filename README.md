@@ -1,6 +1,6 @@
 # HH-Generator
 
-<br><br>
+<br>
 View HH Generator images on **https://felipemurguia.com**
 <br><br>
 
