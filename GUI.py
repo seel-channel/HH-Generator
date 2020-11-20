@@ -388,7 +388,7 @@ if __name__ == '__main__':
         "sampling_rate": 250,
         "segment_length": 4096,
         "start_whole": [25000, 25000],
-        "end_whole": [50000, 100000]}
+        "end_whole": [50000, 50000]}
     
     window = Tk()
     setWindowStyle(window)

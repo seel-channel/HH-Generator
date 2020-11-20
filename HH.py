@@ -20,15 +20,20 @@ from BaselineRemoval import BaselineRemoval
 class HH:
     """
         files_hpath: String List
-            Son los paths de los archivos mas altos, como una azotea.
+            Recibe una lista de 3 strings para la splitted data y una lista de 
+            1 string para merged data. Son los paths de los archivos mas altos, 
+            como una azotea.
         files_lpath: String List
-            Son los paths de los archivos mas bajos, como el sótano.
+            Recibe una lista de 3 strings para la splitted data y una lista 
+            de 1 string para merged data. Son los paths de los archivos mas bajos, 
+            como el sótano.
         channel_order: String list
-            NS = NORTH SOUT
+            NS = NORTH SOUTH
             EW = EAST WEST
             Z = VERTICAL
-            Es usando para cambiar el orden de los canales, permitiendo que
-            puedas usar la informacion en cualquier orden.
+            Recibe una lista de 2 listas con 3 cadenas (strings). 
+            Se usa para cambiar el orden de los canales de los files_paths, 
+            permitiendo que puedas usar la informacion en cualquier orden. 
             Default: [["NS", "EW", "Z"], ["NS", "EW", "Z"]]
         segment_length: int
             Es un entero que se utiliza para saber cual es la longitud del segmento
