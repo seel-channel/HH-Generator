@@ -7,19 +7,29 @@ import matplotlib.pyplot as plt
 from BaselineRemoval import BaselineRemoval
 
 
+"""
+ÍNDICE
+ - Line 178-260: Se cargan los datos de cada sensor disponible
+ - Line 372: Se grafíca los datos y el baseline
+ - Line 392: Se grafíca los baseline y welch method
+ - Line 407: Se grafíca los HVSR
+ - Line 447: Se grafíca los HHSR
+"""
+
+
 class HH:
     """
         files_hpath: String List
             Son los paths de los archivos mas altos, como una azotea.
         files_lpath: String List
             Son los paths de los archivos mas bajos, como el sótano.
-        progress: Function(int, string)
-            Es una función del tipo callback que se llama cada vez que se hace
-            un progreso en la manipulación de datos. Recibe la función un entero
-            que es el porcentaje y un string que expresa la acción que se realiza.
-        folder: String
-            Es el nombre del folder que deseas guardar las gráficas, automáticamente
-            las guarda con el nombre de los archivos que se gráficarón
+        channel_order: String list
+            NS = NORTH SOUT
+            EW = EAST WEST
+            Z = VERTICAL
+            Es usando para cambiar el orden de los canales, permitiendo que
+            puedas usar la informacion en cualquier orden.
+            Default: [["NS", "EW", "Z"], ["NS", "EW", "Z"]]
         segment_length: int
             Es un entero que se utiliza para saber cual es la longitud del segmento
         sampling_rate: int
@@ -40,10 +50,13 @@ class HH:
             para realizar el Welch Method, HHSR y el HVSR.
             Si es verdadero, realizará el baseline correction y el resultado de la
             correción será utiliza para realizar el Welch Method, HHSR y el HVSR.
+        progress: Function(int, string)
+            Es una función del tipo callback que se llama cada vez que se hace
+            un progreso en la manipulación de datos. Recibe la función un entero
+            que es el porcentaje y un string que expresa la acción que se realiza.
 
 
         EXAMPLE
-
         if __name__ == '__main__':
             #USING SPLITTED DATA
             high = "./data/MSEED/20/"
@@ -62,13 +75,13 @@ class HH:
     def __init__(self,
                  files_hpath,
                  files_lpath,
-                 folder=None,
-                 progress=None,
+                 channel_order = [["NS", "EW", "Z"], ["NS", "EW", "Z"]],
                  segment_length=4096,
                  sampling_rate=250,
                  start_whole=[25000, 25000],
                  end_whole=[50000, 100000],
-                 use_baseline_correction=True):
+                 use_baseline_correction=True,
+                 progress=None):
         self.end_whole = end_whole
         self.start_whole = start_whole
         self.files_hpath = files_hpath
@@ -76,18 +89,21 @@ class HH:
         self.segment_length = segment_length
         self.sampling_rate = sampling_rate
         self.partial_frec = 1 / self.sampling_rate
-        self.channel_name = ['N90E', 'N00E', 'VERTICAL']
         self.use_baseline_correction = use_baseline_correction
         self.sensors = 2 if files_hpath and files_lpath else 1
         self.plots_amount = 3
-
+        
+        self.channel_name = ["N90E", "N00E", "VERTICAL"]
+        self.channel_indices = []
+        self.channel_order = channel_order
+        
+        #Valida para obtener la menor longitud de archivos
         if files_hpath and files_lpath:
             self.files_len = len(min(files_hpath, files_lpath))
         else:
             self.files_len = len(
                 files_hpath) if files_hpath else len(files_lpath)
 
-        self.folder = folder
         self.progress = progress
         self.percentageComplete = 0
 
@@ -96,20 +112,30 @@ class HH:
         self.all_baseline = []
 
         for sensor in range(self.sensors):
+            #Asisgna los files_path dependiendo de cuales existen
             if files_hpath and files_lpath:
                 files_path = files_hpath if sensor == 0 else files_lpath
+                indices = self.getChannelIndices(sensor)
             else:
-                files_path = files_hpath if files_hpath else files_lpath
+                if files_hpath:
+                    files_path = files_hpath 
+                    indices = self.getChannelIndices(0)
+                else:
+                    files_path = files_lpath 
+                    indices = self.getChannelIndices(1)
 
+            #Calcula los datos con el files_pñath y el numero del sessor
+            self.channel_indices.append(indices)
             computedChannelsData = self.computeChannel(files_path, sensor)
 
+            #Agrega los datos a la lista para que se puedan usar en las graphs
             self.all_data.append(computedChannelsData[0])
             self.all_baseline.append(computedChannelsData[1])
             self.all_welch.append(computedChannelsData[2])
             print(14*"--" + "\n")
 
         print("GENERATING GRAPHS")
-        plt.rcParams['agg.path.chunksize'] = 10000
+        plt.rcParams['agg.path.chunksize'] = 10000 #Aumenta el limite de graphs
         self.updatePercentage(7, f"GRAPHING DATA AND BASELINE")
         self.updatePercentage(0, "")
         self.graphSensorsDataAndBaseline()
@@ -128,19 +154,33 @@ class HH:
         print("\n" + 14*"--" + "\n")
 
     # LOADING DATA FUNCTIONS
+    def getChannelIndices(self, sensor):
+        indices = []
+        for i in range(len(self.channel_order[sensor])):
+            channel = self.channel_order[sensor][i]
+            if(channel == "NS" or channel == "N90E"):
+                indices.append(0)
+            elif(channel == "EW" or channel == "N00E"):
+                indices.append(1)
+            elif(channel == "Z" or channel == "VERTICAL"): 
+                indices.append(2)
+            else: indices.append(i)
+        return indices
+        
     def loadFileData(self, filepath):
-        filename = filepath.split("/")[-1]
-        extension = filename.split(".")[-1].lower()
-        if extension == "mseed" or extension == "sac":
-            data = obs.read(filepath)[0].data
-        else:
-            data = np.loadtxt(filepath)
+        filename = filepath.split("/")[-1] #Obtiene el filename
+        extension = filename.split(".")[-1].lower() #Obtiene la extension
+        if extension == "mseed" or extension == "sac": #Si es sac o mseed
+            data = obs.read(filepath)[0].data #Utiliza el obspy.read
+        else:   
+            data = np.loadtxt(filepath) #Si no, utiliza el numpy load ascci
         return data
 
     def computeChannel(self, files_path, sensor):
         # Convert the data from data merge
         # FROM: [[x y z], [x y z], [x, y z], ..., [x y z]]
         #TO:   [[x, x, x, ..., x], [y, y, y, ..., y], [z, z, z, ..., z]]
+        
         data = []
         loadingTimes = []
         if self.files_len == 1:
@@ -158,11 +198,14 @@ class HH:
                 loadingTimes.append("({:0.2f}s)".format(
                     (time.time() - timeMethod) / self.plots_amount))
 
+
+        #Crea las variables en lista para asignar el valor correcto a cada canal
         length = self.plots_amount
-        data_sensor = []
-        welch_sensor = []
-        baseline_sensor = []
+        data_sensor = np.empty(length, dtype=list)
+        welch_sensor = np.empty(length, dtype=list)
+        baseline_sensor = np.empty(length, dtype=list)
         for i in range(length):
+            channel_index = self.channel_indices[sensor][i]
             sensorTimeInit = time.time()
             completed = "{}/{}".format(i + 1, length)
             sensor_letter = self.getSensorLetter(sensor)
@@ -181,14 +224,14 @@ class HH:
             else:
                 dataVector = data[i]
                 print("   {} DONE".format(loadingTimes[i]))
-            data_sensor.append(dataVector)
+            data_sensor[channel_index] = dataVector
 
             # DATA TRIM
             end = self.end_whole[sensor]
             start = self.start_whole[sensor]
             totalWhole = start + end
             lenghtVector = len(dataVector)
-            start = 1 if start < 1 else start
+            start = 1 if start < 1 else start 
             end = 1 if end < 1 else end
             if totalWhole >= lenghtVector:
                 print("   COULDNT TRIM DATA BEACAUSE (start_whole + end_whole) >= len(dataVector) ({} > {})".format(
@@ -204,13 +247,13 @@ class HH:
             self.updatePercentage(0, "")
             timeMethod = time.time()
             baseline_corr = self.baselineCorretion(data_trim)
-            baseline_sensor.append(baseline_corr)
+            baseline_sensor[channel_index] = baseline_corr
             print("   {} DONE".format(self.timeDiff(timeMethod)))
 
             # WELCH METHOD
             print(" - WELCH METHOD")
             timeMethod = time.time()
-            welch_sensor.append(self.welchMethod(baseline_corr[1]))
+            welch_sensor[channel_index] = self.welchMethod(baseline_corr[1])
             print("   {} DONE".format(self.timeDiff(timeMethod)))
 
             print("{} CHANNEL DATA LOADED \n".format(
@@ -218,8 +261,8 @@ class HH:
 
         return data_sensor, baseline_sensor, welch_sensor
 
-    # UTILS FUNCTIONS
 
+    # UTILS FUNCTIONS
     def updatePercentage(self, toComplete, message):
         self.percentageComplete += toComplete
         if self.progress is not None:
@@ -246,33 +289,34 @@ class HH:
             name = path.split("/")[-1]
             return name.split(".")[0]
 
+        #Si los 2 paths tiene datos los unirá para crear la carpeta
         if self.files_lpath and self.files_hpath:
             name1 = getFileName(self.files_lpath[0])
             name2 = getFileName(self.files_hpath[0])
             autoFolder = "{} - {}".format(name1, name2)
-        else:
+        else: #Si no solo creará la carpeta con un nombre
             autoFolder = getFileName(self.files_hpath[0]) \
                 if self.files_hpath else getFileName(self.files_lpath[0])
-
+        
+        #Obtiene el path del archivo actual
         actual = os.path.dirname(os.path.abspath(__file__))
-        newpath = actual + "/generated/" + \
-            (self.folder if self.folder else autoFolder) + "/"
-        if not os.path.exists(newpath):
-            os.makedirs(newpath)
+        newpath = actual + "/generated/"+  autoFolder + "/"
+        #Si no existe esa carpeta la crea
+        if not os.path.exists(newpath): os.makedirs(newpath)
 
         fig.tight_layout(pad=2.0)
         if fname != None:
             fig.savefig(newpath + fname + ".jpg", dpi=300)
 
-    # METHODS
 
+    # METHODS
     def baselineCorretion(self, data):
         data_len = len(data)
         x = np.arange(data_len) * self.partial_frec
-        if self.use_baseline_correction:
+        if self.use_baseline_correction: #Utiliza el baseline correction
             y = BaselineRemoval(data).ZhangFit(data_len)
-            y = y - np.mean(y)
-        else:
+            y = y - np.mean(y) #Centra el baseline al origen en y
+        else: #Si no, devuelve los mismos datos
             y = data
         return x,  y
 
@@ -286,8 +330,8 @@ class HH:
             nperseg=lenght,
             noverlap=lenght / 2)
 
-    # STYLES
 
+    # STYLES
     def axSetGrid(self, ax):
         ax.grid('#CCCCCC', which='major', linestyle='--')
         ax.grid('#CCCCCC', which='minor', linestyle=':')
@@ -295,15 +339,16 @@ class HH:
     def axLogLimits(self, ax, x):
         xMax = 10**1 + 2
         yMin = 10**-1 - 0.02
-        ax.set_xlim(yMin, xMax)
-        for j in range(len(x)):
-            if x[j] > xMax:
+        ax.set_xlim(yMin, xMax) #Aplica el xlim
+        for j in range(len(x)): #De la data de x hace un for
+            if x[j] > xMax: 
                 skip = j
                 break
+        #Si el valor es mayor al xMax me vas a hacer skip hasta ese número
         return skip
 
-    # SUBPLOT GENERATION FUNCTIONS
 
+    # SUBPLOT GENERATION FUNCTIONS
     def plotBaselineCorrection(self, ax, sensor, i):
         label_plot = "Baseline Correction " + self.channel_name[i]
         x, y = self.all_baseline[sensor][i]
@@ -322,8 +367,8 @@ class HH:
         ax.semilogx(f[:skip], Pxx[:skip], 'k', label=label_plot)
         ax.legend(loc="upper left")
 
-    # GRAPHICATION FUNCTIONS
 
+    # GRAPHICATION FUNCTIONS
     def graphSensorsDataAndBaseline(self):
         print(" - INITIALIZING SENSOR DATA AND BASELINE GRAPH...")
         timeInit = time.time()
