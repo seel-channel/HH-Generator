@@ -54,7 +54,7 @@
     python GUI.py
 ```
 
-- Si no puedes abrir la interfaz gráfica, crea un nuevo archivo .py y pega este código.
+- Si no puedes abrir la interfaz gráfica, crea un nuevo archivo start.py y pega este código.
 
 ```python
 from HH import HH
